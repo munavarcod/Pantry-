@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>The Kitchen · Munavar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
+<style>
+  html, body, #root { background: #F2ECE0; color: #1F241E; margin: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  .display { font-family: 'Instrument Serif', Georgia, serif; letter-spacing: -0.01em; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .hairline { border: 1px solid rgba(31, 36, 30, 0.12); }
+  .hairline-b { border-bottom: 1px solid rgba(31, 36, 30, 0.12); }
+  .card { background: #F8F4EA; }
+  .card:hover { background: #FBF7EE; }
+  .stamp { border: 1px solid rgba(31,36,30,0.2); border-radius: 2px; padding: 2px 6px; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; display: inline-block; }
+  .chip { border: 1px solid rgba(31,36,30,0.15); border-radius: 999px; padding: 6px 12px; font-size: 12px; letter-spacing: 0.02em; transition: all 0.15s; background: transparent; cursor: pointer; }
+  .chip:hover { background: rgba(31,36,30,0.04); }
+  .chip.active { background: #1F241E; color: #F2ECE0; border-color: #1F241E; }
+  .seg { border: 1px solid rgba(31,36,30,0.15); border-radius: 999px; padding: 8px 18px; font-size: 13px; background: transparent; cursor: pointer; transition: all 0.15s; font-family: inherit; color: inherit; }
+  .seg:hover { background: rgba(31,36,30,0.04); }
+  .seg.active { background: #1F241E; color: #F2ECE0; border-color: #1F241E; }
+  .btn-primary { background: #1F241E; color: #F2ECE0; cursor: pointer; border: 0; font-family: inherit; }
+  .btn-primary:hover { background: #2E352C; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-ghost { cursor: pointer; border: 0; background: transparent; font-family: inherit; color: inherit; }
+  .btn-ghost:hover { background: rgba(31,36,30,0.06); }
+  .fresh-bar { height: 3px; }
+  input, select, textarea { font-family: inherit; color: inherit; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #6B7F5A; box-shadow: 0 0 0 3px rgba(107,127,90,0.15); }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: none;} }
+  .fade-up { animation: fadeUp 0.25s ease-out both; }
+  .icon-hover-group:hover .icon-actions { opacity: 1; }
+  .icon-actions { opacity: 0; transition: opacity 0.15s; }
+  #boot { padding: 40px; text-align: center; font-family: 'Instrument Serif', Georgia, serif; font-size: 20px; opacity: 0.6; }
+  #boot small { display: block; margin-top: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; opacity: 0.6; }
+</style>
+</head>
+<body>
+<div id="root"><div id="boot">Loading the kitchen…<small>If this stays here more than a few seconds, refresh the page.</small></div></div>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+
+const Svg = ({children, size=14, style}) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+       fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>{children}</svg>
+);
+const Plus   = (p)=><Svg {...p}><path d="M12 5v14M5 12h14"/></Svg>;
+const Minus  = (p)=><Svg {...p}><path d="M5 12h14"/></Svg>;
+const Search = (p)=><Svg {...p}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></Svg>;
+const X      = (p)=><Svg {...p}><path d="M18 6 6 18M6 6l12 12"/></Svg>;
+const Trash  = (p)=><Svg {...p}><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></Svg>;
+const Edit   = (p)=><Svg {...p}><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></Svg>;
+const Basket = (p)=><Svg {...p}><path d="M3 6h18l-2 13H5L3 6ZM8 6l2-4M16 6l-2-4M9 10v6M15 10v6"/></Svg>;
+const Check  = (p)=><Svg {...p}><path d="M20 6 9 17l-5-5"/></Svg>;
+const Alert  = (p)=><Svg {...p}><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></Svg>;
+const Apple  = (p)=><Svg {...p}><path d="M12 20.9c1.5 0 2.75-.67 3.5-1.94 1.42-2.4 1.5-6-.5-9-.75-1-1.5-2-3-2s-2.25 1-3 2c-2 3-1.92 6.6-.5 9 .75 1.27 2 1.94 3.5 1.94ZM12 7V5a2 2 0 0 1 2-2"/></Svg>;
+const Milk   = (p)=><Svg {...p}><path d="M8 2h8M8 2v3l-2 3v11a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8l-2-3V2M6 13h12"/></Svg>;
+const Wheat  = (p)=><Svg {...p}><path d="M12 22V2M8 6c0 2 2 3 4 3M16 6c0 2-2 3-4 3M8 11c0 2 2 3 4 3M16 11c0 2-2 3-4 3M8 16c0 2 2 3 4 3M16 16c0 2-2 3-4 3"/></Svg>;
+const Snow   = (p)=><Svg {...p}><path d="M12 2v20M4.93 4.93l14.14 14.14M2 12h20M4.93 19.07 19.07 4.93"/></Svg>;
+const Flame  = (p)=><Svg {...p}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5Z"/></Svg>;
+const Coffee = (p)=><Svg {...p}><path d="M17 8h1a4 4 0 1 1 0 8h-1M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8ZM6 2v3M10 2v3M14 2v3"/></Svg>;
+const Box    = (p)=><Svg {...p}><path d="M21 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3M3 8h18M3 8v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8"/></Svg>;
+const Fridge = (p)=><Svg {...p}><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M5 10h14M9 6v1M9 14v3"/></Svg>;
+const Cupboard = (p)=><Svg {...p}><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18M10 11h.01M14 11h.01"/></Svg>;
+const Iceberg = (p)=><Svg {...p}><path d="M12 2 4 10l4 2-3 4 5 1-2 4h8l-2-4 5-1-3-4 4-2Z"/></Svg>;
+
+const storage = {
+  get(k) { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : null; } catch { return null; } },
+  set(k,v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+const CATEGORIES = [
+  { id:"produce",   label:"Produce",   icon:Apple,  defaultLocation:"fridge" },
+  { id:"dairy",     label:"Dairy",     icon:Milk,   defaultLocation:"fridge" },
+  { id:"pantry",    label:"Pantry",    icon:Wheat,  defaultLocation:"cupboard" },
+  { id:"frozen",    label:"Frozen",    icon:Snow,   defaultLocation:"freezer" },
+  { id:"spices",    label:"Spices",    icon:Flame,  defaultLocation:"cupboard" },
+  { id:"beverages", label:"Beverages", icon:Coffee, defaultLocation:"fridge" },
+  { id:"other",     label:"Other",     icon:Box,    defaultLocation:"cupboard" },
+];
+const LOCATIONS = [
+  { id:"cupboard", label:"Cupboard", icon:Cupboard },
+  { id:"fridge",   label:"Fridge",   icon:Fridge },
+  { id:"freezer",  label:"Freezer",  icon:Iceberg },
+];
+const UNITS = ["pcs","g","kg","ml","l","pack","bottle","can","box"];
+
+const uid = () => Math.random().toString(36).slice(2, 10);
+const formatDE = (iso) => { if (!iso) return null; const parts = iso.split("-"); return parts[2] + "." + parts[1] + "." + parts[0]; };
+const daysUntil = (iso) => { if (!iso) return null; const t = new Date(iso+"T00:00:00"); const today = new Date(); today.setHours(0,0,0,0); return Math.round((t-today)/86400000); };
+const freshnessOf = (item) => {
+  if (!item.expiryDate) return "none";
+  const d = daysUntil(item.expiryDate);
+  if (d < 0) return "expired";
+  if (d <= 3) return "critical";
+  if (d <= 7) return "warning";
+  return "fresh";
+};
+
+function App() {
+  const [items, setItems] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [location, setLocation] = useState("all");
+  const [view, setView] = useState("pantry");
+  const [query, setQuery] = useState("");
+  const [activeCat, setActiveCat] = useState("all");
+  const [showAdd, setShowAdd] = useState(false);
+  const [editing, setEditing] = useState(null);
+
+  useEffect(() => {
+    const saved = storage.get("kitchen:items");
+    if (saved && Array.isArray(saved)) {
+      setItems(saved.map(function(i){ return Object.assign({}, i, { location: i.location || "cupboard" }); }));
+    }
+    setLoaded(true);
+  }, []);
+  useEffect(() => { if (loaded) storage.set("kitchen:items", items); }, [items, loaded]);
+
+  const scopedItems = useMemo(() => location === "all" ? items : items.filter(i => i.location === location), [items, location]);
+
+  const stats = useMemo(() => {
+    const active = scopedItems.filter(i => !i.onShoppingList);
+    const total = active.length;
+    const low = active.filter(i => i.quantity > 0 && i.quantity <= 1).length;
+    const expiring = active.filter(i => {
+      if (!i.expiryDate) return false;
+      const d = daysUntil(i.expiryDate);
+      return d >= 0 && d <= 7;
+    }).length;
+    const listCount = scopedItems.filter(i => i.onShoppingList || i.quantity === 0).length;
+    return { total: total, low: low, expiring: expiring, listCount: listCount };
+  }, [scopedItems]);
+
+  const visible = useMemo(() => {
+    let base = scopedItems;
+    if (view === "pantry") base = base.filter(i => !i.onShoppingList && i.quantity > 0);
+    else if (view === "list") base = base.filter(i => i.onShoppingList || i.quantity === 0);
+    else if (view === "expiring") base = base.filter(i => !i.onShoppingList && i.expiryDate && daysUntil(i.expiryDate) <= 7);
+    if (activeCat !== "all") base = base.filter(i => i.category === activeCat);
+    if (query.trim()) { const q = query.toLowerCase(); base = base.filter(i => i.name.toLowerCase().includes(q)); }
+    return base.slice().sort((a,b) => {
+      if (view === "expiring") {
+        const da = a.expiryDate ? daysUntil(a.expiryDate) : 999;
+        const db = b.expiryDate ? daysUntil(b.expiryDate) : 999;
+        return da - db;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [scopedItems, view, activeCat, query]);
+
+  const upsert = (it) => setItems(p => p.find(i=>i.id===it.id) ? p.map(i=>i.id===it.id?it:i) : p.concat([it]));
+  const adjustQty = (id, d) => setItems(p => p.map(i => i.id===id ? Object.assign({}, i, {quantity: Math.max(0, i.quantity+d)}) : i));
+  const restock = (id) => setItems(p => p.map(i => i.id===id ? Object.assign({}, i, {quantity: i.targetQuantity||1, onShoppingList:false, addedAt:new Date().toISOString()}) : i));
+  const toggleShoppingList = (id) => setItems(p => p.map(i => i.id===id ? Object.assign({}, i, {onShoppingList:!i.onShoppingList}) : i));
+  const remove = (id) => setItems(p => p.filter(i => i.id !== id));
+
+  const currentLoc = LOCATIONS.find(l => l.id === location);
+  const title = location === "all" ? "The Kitchen" : currentLoc.label;
+  const subtitle = location === "all"
+    ? "A small ledger of what's on the shelf — what's running low, and what to pick up next."
+    : "Everything stored in the " + currentLoc.label.toLowerCase() + ".";
+
+  return (
+    <div className="min-h-screen">
+      <header className="hairline-b">
+        <div className="max-w-6xl mx-auto px-6 pt-10 pb-8">
+          <div className="flex items-baseline justify-between flex-wrap gap-4">
+            <div>
+              <div className="stamp mono mb-4">Est. Pantry · Munavar</div>
+              <h1 className="display text-5xl md:text-6xl leading-none">
+                {title}<span style={{color:"#6B7F5A"}}>.</span>
+              </h1>
+              <p className="text-sm mt-3 opacity-70 max-w-md">{subtitle}</p>
+            </div>
+            <button onClick={()=>setShowAdd(true)} className="btn-primary flex items-center gap-2 px-5 py-3 rounded-full text-sm font-medium">
+              <Plus size={16}/> Add item
+            </button>
+          </div>
+
+          <div className="mt-8 flex gap-2 flex-wrap">
+            <button onClick={()=>setLocation("all")} className={"seg " + (location==="all"?"active":"")}>All</button>
+            {LOCATIONS.map(l => (
+              <button key={l.id} onClick={()=>setLocation(l.id)} className={"seg inline-flex items-center gap-2 " + (location===l.id?"active":"")}>
+                <l.icon size={14}/> {l.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-px hairline rounded overflow-hidden">
+            <LedgerStat n={stats.total} label="In stock" onClick={()=>setView("pantry")} active={view==="pantry"}/>
+            <LedgerStat n={stats.low} label="Running low" tint="#C8853D"/>
+            <LedgerStat n={stats.expiring} label="Expiring · 7 days" tint="#A24A2A" onClick={()=>setView("expiring")} active={view==="expiring"}/>
+            <LedgerStat n={stats.listCount} label="Shopping list" onClick={()=>setView("list")} active={view==="list"}/>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-6xl mx-auto px-6 pt-6 pb-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 hairline rounded-full px-4 py-2 flex-1 min-w-[220px] max-w-md" style={{background:"rgba(255,255,255,0.4)"}}>
+            <Search size={14} style={{opacity:0.6}}/>
+            <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search the shelf…" className="bg-transparent flex-1 text-sm outline-none border-0"/>
+            {query && <button onClick={()=>setQuery("")} className="btn-ghost" style={{opacity:0.5}}><X size={14}/></button>}
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={()=>setActiveCat("all")} className={"chip " + (activeCat==="all"?"active":"")}>All</button>
+            {CATEGORIES.map(c => (
+              <button key={c.id} onClick={()=>setActiveCat(c.id)} className={"chip inline-flex items-center gap-1.5 " + (activeCat===c.id?"active":"")}>
+                <c.icon size={12}/> {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <main className="max-w-6xl mx-auto px-6 pb-24">
+        {visible.length === 0 ? (
+          <EmptyState view={view} location={location} onAdd={()=>setShowAdd(true)}/>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+            {visible.map(item => (
+              <ItemCard key={item.id} item={item} showLocation={location==="all"}
+                onInc={()=>adjustQty(item.id,+1)} onDec={()=>adjustQty(item.id,-1)}
+                onEdit={()=>setEditing(item)} onRemove={()=>remove(item.id)}
+                onToggleList={()=>toggleShoppingList(item.id)} onRestock={()=>restock(item.id)}
+                inList={view==="list"}/>
+            ))}
+          </div>
+        )}
+      </main>
+
+      {(showAdd || editing) && (
+        <ItemSheet initial={editing} defaultLocation={location==="all"?"cupboard":location}
+          existingNames={items.map(i => i.name.toLowerCase())}
+          onClose={()=>{setShowAdd(false); setEditing(null);}}
+          onSave={(data)=>{
+            const record = editing ? Object.assign({}, editing, data)
+              : Object.assign({ id: uid(), addedAt: new Date().toISOString(), onShoppingList:false }, data);
+            upsert(record); setShowAdd(false); setEditing(null);
+          }}/>
+      )}
+    </div>
+  );
+}
+
+function LedgerStat({ n, label, tint, onClick, active }) {
+  const clickable = !!onClick;
+  return (
+    <button onClick={onClick} disabled={!clickable}
+      className={"text-left px-5 py-5 transition " + (clickable?"cursor-pointer":"cursor-default")}
+      style={{ background: active ? "rgba(31,36,30,0.06)" : "#F8F4EA", border: 0, fontFamily:"inherit", color:"inherit" }}>
+      <div className="mono text-3xl md:text-4xl" style={{ color: tint || "#1F241E" }}>{String(n).padStart(2,"0")}</div>
+      <div className="text-[11px] uppercase tracking-widest opacity-60 mt-2">{label}</div>
+    </button>
+  );
+}
+
+function ItemCard({ item, showLocation, onInc, onDec, onEdit, onRemove, onToggleList, onRestock, inList }) {
+  const cat = CATEGORIES.find(c => c.id === item.category) || CATEGORIES[6];
+  const loc = LOCATIONS.find(l => l.id === item.location) || LOCATIONS[0];
+  const Icon = cat.icon;
+  const LocIcon = loc.icon;
+  const fresh = freshnessOf(item);
+  const days = item.expiryDate ? daysUntil(item.expiryDate) : null;
+  const barColor = ({ fresh:"#B8C5A4", warning:"#E0B26B", critical:"#C8853D", expired:"#A24A2A", none:"transparent" })[fresh];
+
+  let expiryText = null;
+  if (item.expiryDate) {
+    if (days < 0) expiryText = "Expired " + Math.abs(days) + "d ago";
+    else if (days === 0) expiryText = "Expires today";
+    else expiryText = formatDE(item.expiryDate) + " · " + days + "d";
+  }
+
+  return (
+    <div className="card hairline rounded-md fade-up relative overflow-hidden icon-hover-group">
+      <div className="p-5 pb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3" style={{opacity:0.7}}>
+            <div className="inline-flex items-center gap-1.5">
+              <Icon size={13}/>
+              <span className="text-[10px] uppercase tracking-widest">{cat.label}</span>
+            </div>
+            {showLocation && (
+              <div className="inline-flex items-center gap-1.5" style={{borderLeft:"1px solid rgba(31,36,30,0.15)", paddingLeft:"12px"}}>
+                <LocIcon size={12}/>
+                <span className="text-[10px] uppercase tracking-widest">{loc.label}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-1 icon-actions">
+            <button onClick={onEdit} className="btn-ghost p-1.5 rounded" title="Edit"><Edit size={13}/></button>
+            <button onClick={onRemove} className="btn-ghost p-1.5 rounded" title="Remove"><Trash size={13}/></button>
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="display text-2xl leading-tight truncate">{item.name}</div>
+            {item.notes && <div className="text-xs opacity-60 mt-1 truncate">{item.notes}</div>}
+          </div>
+          <div className="text-right">
+            <div className="mono text-3xl leading-none">{item.quantity}</div>
+            <div className="text-[10px] uppercase tracking-widest opacity-60 mt-1">{item.unit}</div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-[11px]" style={{opacity:0.7}}>
+            {expiryText ? (
+              <span className="inline-flex items-center gap-1.5">
+                {fresh !== "fresh" && <Alert size={11} style={{color: barColor}}/>}
+                <span>{expiryText}</span>
+              </span>
+            ) : <span style={{opacity:0.5}}>No expiry</span>}
+          </div>
+          {inList ? (
+            <button onClick={onRestock} className="btn-primary inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs">
+              <Check size={12}/> Restocked
+            </button>
+          ) : (
+            <div className="flex items-center gap-1">
+              <button onClick={onDec} className="btn-ghost p-1.5 rounded-full hairline"><Minus size={12}/></button>
+              <button onClick={onInc} className="btn-ghost p-1.5 rounded-full hairline"><Plus size={12}/></button>
+              <button onClick={onToggleList} className="btn-ghost p-1.5 rounded-full hairline ml-1" title="Add to shopping list"><Basket size={12}/></button>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="fresh-bar" style={{ background: barColor }}/>
+    </div>
+  );
+}
+
+function EmptyState({ view, location, onAdd }) {
+  const locObj = LOCATIONS.find(l=>l.id===location);
+  const locLabel = location === "all" ? "shelf" : (locObj ? locObj.label.toLowerCase() : "shelf");
+  const copy = ({
+    pantry:   { title: "The " + locLabel + " is empty.", sub: "Add your first item to start the ledger." },
+    list:     { title: "Nothing on the list.", sub: "Items with zero stock will show up here." },
+    expiring: { title: "Nothing expiring soon.", sub: "Everything has time." },
+  })[view];
+  return (
+    <div className="text-center py-24 fade-up">
+      <div className="display text-3xl mb-2">{copy.title}</div>
+      <div className="text-sm opacity-60 mb-6">{copy.sub}</div>
+      {view === "pantry" && (
+        <button onClick={onAdd} className="btn-primary inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm">
+          <Plus size={14}/> Add item
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ItemSheet({ initial, defaultLocation, onClose, onSave, existingNames }) {
+  const [form, setForm] = useState({
+    name: (initial && initial.name) || "",
+    category: (initial && initial.category) || "pantry",
+    location: (initial && initial.location) || defaultLocation || "cupboard",
+    quantity: (initial && initial.quantity !== undefined) ? initial.quantity : 1,
+    unit: (initial && initial.unit) || "pcs",
+    expiryDate: (initial && initial.expiryDate) || "",
+    notes: (initial && initial.notes) || "",
+    onShoppingList: (initial && initial.onShoppingList) || false,
+  });
+
+  const changeCategory = (cat) => {
+    const c = CATEGORIES.find(x => x.id === cat);
+    setForm(function(f){
+      return Object.assign({}, f, { category: cat, location: initial ? f.location : (c ? c.defaultLocation : f.location) });
+    });
+  };
+
+  const duplicate = !initial && form.name.trim() && existingNames.includes(form.name.trim().toLowerCase());
+  const canSave = form.name.trim().length > 0;
+  const submit = () => {
+    if (!canSave) return;
+    onSave(Object.assign({}, form, {
+      name: form.name.trim(),
+      quantity: Number(form.quantity) || 0,
+      notes: form.notes.trim() || undefined,
+      expiryDate: form.expiryDate || undefined,
+    }));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6" style={{ background:"rgba(31,36,30,0.35)" }} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} className="w-full sm:max-w-lg rounded-t-2xl sm:rounded-lg hairline fade-up" style={{background:"#F8F4EA", maxHeight:"90vh", overflowY:"auto"}}>
+        <div className="hairline-b px-6 py-4 flex items-center justify-between">
+          <div>
+            <div className="stamp mono">{initial ? "Edit label" : "New label"}</div>
+            <div className="display text-2xl mt-2">{initial ? "Update item" : "Add to the shelf"}</div>
+          </div>
+          <button onClick={onClose} className="btn-ghost p-2 rounded-full"><X size={16}/></button>
+        </div>
+        <div className="p-6 space-y-4">
+          <Field label="Name">
+            <input autoFocus value={form.name} onChange={e=>setForm(Object.assign({}, form, {name:e.target.value}))}
+              placeholder="Olive oil, tomatoes, oat milk…"
+              className="w-full hairline rounded px-3 py-2.5 text-sm" style={{background:"rgba(255,255,255,0.6)"}}/>
+            {duplicate && (
+              <div className="text-xs mt-2 inline-flex items-center gap-1.5" style={{color:"#C8853D"}}>
+                <Alert size={12}/> You already have something with this name.
+              </div>
+            )}
+          </Field>
+
+          <Field label="Stored in">
+            <div className="grid grid-cols-3 gap-2">
+              {LOCATIONS.map(l => (
+                <button key={l.id} type="button" onClick={()=>setForm(Object.assign({}, form, {location: l.id}))}
+                  className="hairline rounded px-3 py-2.5 text-sm inline-flex items-center justify-center gap-2 transition"
+                  style={{
+                    background: form.location===l.id ? "#1F241E" : "rgba(255,255,255,0.6)",
+                    color: form.location===l.id ? "#F2ECE0" : "inherit",
+                    cursor: "pointer", fontFamily: "inherit", border: 0,
+                  }}>
+                  <l.icon size={13}/> {l.label}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Category">
+              <select value={form.category} onChange={e=>changeCategory(e.target.value)}
+                className="w-full hairline rounded px-3 py-2.5 text-sm" style={{background:"rgba(255,255,255,0.6)"}}>
+                {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Unit">
+              <select value={form.unit} onChange={e=>setForm(Object.assign({}, form, {unit:e.target.value}))}
+                className="w-full hairline rounded px-3 py-2.5 text-sm" style={{background:"rgba(255,255,255,0.6)"}}>
+                {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Quantity">
+              <input type="number" min="0" value={form.quantity} onChange={e=>setForm(Object.assign({}, form, {quantity:e.target.value}))}
+                className="w-full hairline rounded px-3 py-2.5 text-sm mono" style={{background:"rgba(255,255,255,0.6)"}}/>
+            </Field>
+            <Field label="Expiry (optional)">
+              <input type="date" value={form.expiryDate} onChange={e=>setForm(Object.assign({}, form, {expiryDate:e.target.value}))}
+                className="w-full hairline rounded px-3 py-2.5 text-sm" style={{background:"rgba(255,255,255,0.6)"}}/>
+            </Field>
+          </div>
+          <Field label="Notes (optional)">
+            <textarea rows={2} value={form.notes} onChange={e=>setForm(Object.assign({}, form, {notes:e.target.value}))}
+              placeholder="Brand, shelf, recipe it's for…"
+              className="w-full hairline rounded px-3 py-2.5 text-sm resize-none" style={{background:"rgba(255,255,255,0.6)"}}/>
+          </Field>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" checked={form.onShoppingList} onChange={e=>setForm(Object.assign({}, form, {onShoppingList:e.target.checked}))}/>
+            <span>Also add to shopping list</span>
+          </label>
+        </div>
+        <div className="px-6 py-4 flex justify-end gap-2" style={{borderTop:"1px solid rgba(31,36,30,0.12)"}}>
+          <button onClick={onClose} className="btn-ghost px-4 py-2 rounded-full text-sm">Cancel</button>
+          <button onClick={submit} disabled={!canSave} className="btn-primary px-5 py-2 rounded-full text-sm">
+            {initial ? "Save changes" : "Add to shelf"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <label className="block">
+      <div className="text-[10px] uppercase tracking-widest opacity-60 mb-1.5">{label}</div>
+      {children}
+    </label>
+  );
+}
+
+try {
+  ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+} catch (err) {
+  document.getElementById("root").innerHTML =
+    '<div style="padding:40px;font-family:monospace;color:#A24A2A"><b>Something went wrong loading the app.</b><br/><br/>' +
+    String(err) + '</div>';
+}
+</script>
+</body>
+</html>
